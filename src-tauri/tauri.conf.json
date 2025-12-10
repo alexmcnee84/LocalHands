@@ -28,7 +28,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "app"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -39,10 +39,16 @@
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
-      "timestampUrl": ""
+      "timestampUrl": "",
+      "nsis": {
+        "compression": "lzma"
+      }
     },
     "category": "Productivity",
     "shortDescription": "Local AI assistant with Grok-style UI",
-    "longDescription": "LocalHands is a local AI assistant application built with Tauri, featuring a Grok-style chat interface. It provides a clean, modern UI for interacting with AI models locally."
+    "longDescription": "LocalHands is a local AI assistant application built with Tauri, featuring a Grok-style chat interface. It provides a clean, modern UI for interacting with AI models locally.",
+    "android": {
+      "minSdkVersion": 24
+    }
   }
 }
