@@ -23,6 +23,7 @@
     "android:build": "tauri android build"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "react": "^19.1.0",
