@@ -41,16 +41,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Tauri CLI via cargo
+        run: cargo install tauri-cli --version "^2"
+
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+        run: cargo tauri build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'LocalHands ${{ github.ref_name }}'
-          releaseBody: 'See the release notes for details.'
-          releaseDraft: true
-          prerelease: false
 
       - name: Find and upload Windows executable
         shell: pwsh
@@ -119,14 +116,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli
+      - name: Install Tauri CLI via cargo
+        run: cargo install tauri-cli --version "^2"
 
       - name: Initialize Android project
-        run: tauri android init
+        run: cargo tauri android init
 
       - name: Build Android APK
-        run: tauri android build --target aarch64 --apk true
+        run: cargo tauri android build --target aarch64 --apk
         env:
           NDK_HOME: ${{ env.NDK_HOME }}
 
