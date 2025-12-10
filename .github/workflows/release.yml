@@ -41,38 +41,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install Tauri CLI globally
-        run: npm install -g @tauri-apps/cli
-
-      - name: Build frontend
-        run: npm run build
+      - name: Install Tauri CLI via cargo
+        run: cargo install tauri-cli --version "^2"
 
       - name: Build Tauri app
-        run: tauri build
+        run: cargo tauri build
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create draft release
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'LocalHands ${{ github.ref_name }}'
-          releaseBody: 'See the release notes for details.'
-          releaseDraft: true
-          prerelease: false
-          tauriScript: echo "Build already done"
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
 
       - name: Find and upload Windows executable
         shell: pwsh
         run: |
-          $exePath = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Filter "*.exe" | Select-Object -First 1
-          if ($exePath) {
-            $size = (Get-Item $exePath.FullName).Length / 1MB
-            Write-Host "Found executable: $($exePath.FullName)"
-            Write-Host "Size: $([math]::Round($size, 2)) MB"
-            Copy-Item $exePath.FullName -Destination "LocalHands-windows.exe"
+          \$exePath = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Filter "*.exe" | Select-Object -First 1
+          if (\$exePath) {
+            \$size = (Get-Item \$exePath.FullName).Length / 1MB
+            Write-Host "Found executable: \$(\$exePath.FullName)"
+            Write-Host "Size: \$([math]::Round(\$size, 2)) MB"
+            Copy-Item \$exePath.FullName -Destination "LocalHands-windows.exe"
           } else {
             Write-Host "No .exe found, checking release directory..."
             Get-ChildItem -Path "src-tauri/target/release" -Recurse | Select-Object FullName
@@ -111,7 +96,7 @@ jobs:
       - name: Setup Android NDK
         run: |
           sdkmanager --install "ndk;27.0.12077973"
-          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
+          echo "NDK_HOME=\$ANDROID_HOME/ndk/27.0.12077973" >> \$GITHUB_ENV
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -131,24 +116,24 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli
+      - name: Install Tauri CLI via cargo
+        run: cargo install tauri-cli --version "^2"
 
       - name: Initialize Android project
-        run: tauri android init
+        run: cargo tauri android init
 
       - name: Build Android APK
-        run: tauri android build --target aarch64 --apk true
+        run: cargo tauri android build --target aarch64 --apk
         env:
-          NDK_HOME: ${{ env.NDK_HOME }}
+          NDK_HOME: \${{ env.NDK_HOME }}
 
       - name: Find and display APK info
         run: |
           find src-tauri/gen/android -name "*.apk" -type f | while read apk; do
-            echo "Found APK: $apk"
-            size=$(stat -c%s "$apk")
-            size_mb=$(echo "scale=2; $size / 1048576" | bc)
-            echo "Size: ${size_mb} MB"
+            echo "Found APK: \$apk"
+            size=\$(stat -c%s "\$apk")
+            size_mb=\$(echo "scale=2; \$size / 1048576" | bc)
+            echo "Size: \${size_mb} MB"
           done
 
       - name: Upload Android artifact
@@ -187,10 +172,8 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
-          # Copy Windows exe
           find windows-artifacts -name "*.exe" -exec cp {} release-assets/LocalHands-windows.exe \; 2>/dev/null || true
           find windows-artifacts -name "*.msi" -exec cp {} release-assets/LocalHands-windows.msi \; 2>/dev/null || true
-          # Copy Android APK (universal or arm64)
           find android-artifacts -name "*universal*.apk" -exec cp {} release-assets/LocalHands-android.apk \; 2>/dev/null || \
           find android-artifacts -name "*arm64*.apk" -exec cp {} release-assets/LocalHands-android.apk \; 2>/dev/null || \
           find android-artifacts -name "*.apk" -exec cp {} release-assets/LocalHands-android.apk \; 2>/dev/null || true
@@ -200,17 +183,17 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: LocalHands ${{ github.ref_name }}
+          tag_name: \${{ github.ref_name }}
+          name: LocalHands \${{ github.ref_name }}
           body: |
-            ## LocalHands ${{ github.ref_name }}
+            ## LocalHands \${{ github.ref_name }}
             
             Local AI assistant with Grok-style UI - built with Tauri v2 + React + TypeScript.
             
             ### Downloads
             
-            - **Windows**: `LocalHands-windows.exe` - Portable executable (no installation required)
-            - **Android**: `LocalHands-android.apk` - Android application package
+            - **Windows**: LocalHands-windows.exe - Portable executable (no installation required)
+            - **Android**: LocalHands-android.apk - Android application package
             
             ### Features
             
@@ -239,4 +222,4 @@ jobs:
           files: |
             release-assets/*
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
