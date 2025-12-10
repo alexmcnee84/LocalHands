@@ -38,8 +38,12 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Install dependencies
-        run: npm install
+      - name: Clean install dependencies
+        run: |
+          Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
+          Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue
+          npm install
+        shell: pwsh
 
       - name: Install Tauri CLI via cargo
         run: cargo install tauri-cli --version "^2"
@@ -47,17 +51,17 @@ jobs:
       - name: Build Tauri app
         run: cargo tauri build
         env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find and upload Windows executable
         shell: pwsh
         run: |
-          \$exePath = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Filter "*.exe" | Select-Object -First 1
-          if (\$exePath) {
-            \$size = (Get-Item \$exePath.FullName).Length / 1MB
-            Write-Host "Found executable: \$(\$exePath.FullName)"
-            Write-Host "Size: \$([math]::Round(\$size, 2)) MB"
-            Copy-Item \$exePath.FullName -Destination "LocalHands-windows.exe"
+          $exePath = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Filter "*.exe" | Select-Object -First 1
+          if ($exePath) {
+            $size = (Get-Item $exePath.FullName).Length / 1MB
+            Write-Host "Found executable: $($exePath.FullName)"
+            Write-Host "Size: $([math]::Round($size, 2)) MB"
+            Copy-Item $exePath.FullName -Destination "LocalHands-windows.exe"
           } else {
             Write-Host "No .exe found, checking release directory..."
             Get-ChildItem -Path "src-tauri/target/release" -Recurse | Select-Object FullName
@@ -96,7 +100,7 @@ jobs:
       - name: Setup Android NDK
         run: |
           sdkmanager --install "ndk;27.0.12077973"
-          echo "NDK_HOME=\$ANDROID_HOME/ndk/27.0.12077973" >> \$GITHUB_ENV
+          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -125,15 +129,15 @@ jobs:
       - name: Build Android APK
         run: cargo tauri android build --target aarch64
         env:
-          NDK_HOME: \${{ env.NDK_HOME }}
+          NDK_HOME: ${{ env.NDK_HOME }}
 
       - name: Find and display APK info
         run: |
           find src-tauri/gen/android -name "*.apk" -type f | while read apk; do
-            echo "Found APK: \$apk"
-            size=\$(stat -c%s "\$apk")
-            size_mb=\$(echo "scale=2; \$size / 1048576" | bc)
-            echo "Size: \${size_mb} MB"
+            echo "Found APK: $apk"
+            size=$(stat -c%s "$apk")
+            size_mb=$(echo "scale=2; $size / 1048576" | bc)
+            echo "Size: ${size_mb} MB"
           done
 
       - name: Upload Android artifact
@@ -183,10 +187,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: \${{ github.ref_name }}
-          name: LocalHands \${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          name: LocalHands ${{ github.ref_name }}
           body: |
-            ## LocalHands \${{ github.ref_name }}
+            ## LocalHands ${{ github.ref_name }}
             
             Local AI assistant with Grok-style UI - built with Tauri v2 + React + TypeScript.
             
@@ -222,4 +226,4 @@ jobs:
           files: |
             release-assets/*
         env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
