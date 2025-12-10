@@ -76,79 +76,16 @@ jobs:
             src-tauri/target/release/bundle/msi/*.msi
           if-no-files-found: warn
 
-  build-android:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup Android NDK
-        run: |
-          sdkmanager --install "ndk;27.0.12077973"
-          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Add Android targets
-        run: |
-          rustup target add aarch64-linux-android
-          rustup target add armv7-linux-androideabi
-          rustup target add i686-linux-android
-          rustup target add x86_64-linux-android
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Install Tauri CLI via cargo
-        run: cargo install tauri-cli --version "^2"
-
-      - name: Initialize Android project
-        run: cargo tauri android init
-
-      - name: Build Android APK
-        run: cargo tauri android build --target aarch64
-        env:
-          NDK_HOME: ${{ env.NDK_HOME }}
-
-      - name: Find and display APK info
-        run: |
-          find src-tauri/gen/android -name "*.apk" -type f | while read apk; do
-            echo "Found APK: $apk"
-            size=$(stat -c%s "$apk")
-            size_mb=$(echo "scale=2; $size / 1048576" | bc)
-            echo "Size: ${size_mb} MB"
-          done
-
-      - name: Upload Android artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
-          if-no-files-found: warn
+  # Android build temporarily disabled - cross-compilation issue with llama_cpp_sys
+  # build-android:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #     ... (disabled for v1.0.0 Windows-only release)
 
   create-release:
-    needs: [build-windows, build-android]
+    needs: [build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -159,28 +96,16 @@ jobs:
           name: windows-exe
           path: windows-artifacts
 
-      - name: Download Android artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: android-apk
-          path: android-artifacts
-
       - name: List artifacts
         run: |
           echo "Windows artifacts:"
           find windows-artifacts -type f -ls 2>/dev/null || echo "No Windows artifacts"
-          echo ""
-          echo "Android artifacts:"
-          find android-artifacts -type f -ls 2>/dev/null || echo "No Android artifacts"
 
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
           find windows-artifacts -name "*.exe" -exec cp {} release-assets/LocalHands-windows.exe \; 2>/dev/null || true
           find windows-artifacts -name "*.msi" -exec cp {} release-assets/LocalHands-windows.msi \; 2>/dev/null || true
-          find android-artifacts -name "*universal*.apk" -exec cp {} release-assets/LocalHands-android.apk \; 2>/dev/null || \
-          find android-artifacts -name "*arm64*.apk" -exec cp {} release-assets/LocalHands-android.apk \; 2>/dev/null || \
-          find android-artifacts -name "*.apk" -exec cp {} release-assets/LocalHands-android.apk \; 2>/dev/null || true
           echo "Release assets:"
           ls -lh release-assets/
 
