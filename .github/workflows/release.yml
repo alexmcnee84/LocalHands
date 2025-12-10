@@ -123,7 +123,7 @@ jobs:
         run: cargo tauri android init
 
       - name: Build Android APK
-        run: cargo tauri android build --target aarch64 --apk
+        run: cargo tauri android build --target aarch64
         env:
           NDK_HOME: ${{ env.NDK_HOME }}
 
