@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Sidebar } from "./components/shared";
 import { ChatInput, ChatMessage, Message } from "./components/features/chat";
+import { SplashScreen } from "./components/SplashScreen";
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -38,9 +40,13 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-base">
-      {/* Sidebar */}
-      <Sidebar
+    <>
+      {showSplash && (
+        <SplashScreen onComplete={() => setShowSplash(false)} duration={2500} />
+      )}
+      <div className="flex h-screen bg-base">
+        {/* Sidebar */}
+        <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
@@ -120,7 +126,8 @@ function App() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 }
 
