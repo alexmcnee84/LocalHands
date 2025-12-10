@@ -1,10 +1,28 @@
 import { useState, useRef, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Sidebar } from "./components/shared";
 import { ChatInput, ChatMessage, Message } from "./components/features/chat";
+import { ModelLoader } from "./components/features/model";
+
+interface ModelInfo {
+  name: string;
+  path: string;
+  size_bytes: number;
+  size_display: string;
+  quantization: string | null;
+  loaded: boolean;
+}
+
+interface InferenceResult {
+  text: string;
+  tokens_generated: number;
+}
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [modelLoaded, setModelLoaded] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -15,7 +33,17 @@ function App() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = (content: string) => {
+  const handleModelLoaded = (info: ModelInfo) => {
+    setModelLoaded(true);
+    console.log("Model loaded:", info.name);
+  };
+
+  const handleModelUnloaded = () => {
+    setModelLoaded(false);
+    console.log("Model unloaded");
+  };
+
+  const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
@@ -25,16 +53,43 @@ function App() {
 
     setMessages((prev) => [...prev, userMessage]);
 
-    // Simulate assistant response (placeholder for actual AI integration)
-    setTimeout(() => {
+    if (!modelLoaded) {
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `This is a placeholder response. LocalHands is ready for AI integration!\n\nYou said: "${content}"`,
+        content: "Please load a GGUF model first using the sidebar to start chatting with AI.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    }, 500);
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const result = await invoke<InferenceResult>("generate_response", {
+        prompt: content,
+        maxTokens: 512,
+      });
+      
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: result.text || "No response generated.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (e) {
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `Error generating response: ${e}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -43,7 +98,12 @@ function App() {
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
-      />
+      >
+        <ModelLoader
+          onModelLoaded={handleModelLoaded}
+          onModelUnloaded={handleModelUnloaded}
+        />
+      </Sidebar>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
@@ -115,7 +175,8 @@ function App() {
           <div className="max-w-3xl mx-auto">
             <ChatInput
               onSend={handleSendMessage}
-              placeholder="Message LocalHands..."
+              disabled={isGenerating}
+              placeholder={isGenerating ? "Generating response..." : (modelLoaded ? "Message LocalHands..." : "Load a model to start chatting...")}
             />
           </div>
         </div>
