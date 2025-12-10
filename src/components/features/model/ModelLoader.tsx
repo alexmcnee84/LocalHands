@@ -135,76 +135,56 @@ export function ModelLoader({ onModelLoaded, onModelUnloaded }: ModelLoaderProps
   };
 
   return (
-    <div className="p-4 bg-base-secondary rounded-lg border border-tertiary">
-      <h3 className="text-sm font-semibold text-content mb-3">Model</h3>
+    <div className="space-y-3">
+      <h3 className="text-xs font-medium text-cyan-200 uppercase tracking-wider">Model Controls</h3>
       
       {error && (
-        <div className="mb-3 p-2 bg-red-500/20 border border-red-500/50 rounded text-red-400 text-xs">
+        <div className="p-2 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-xs">
           {error}
         </div>
       )}
 
       {modelInfo ? (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-sm text-content font-medium truncate" title={modelInfo.name}>
-              {modelInfo.name}
-            </span>
-          </div>
-          
-          <div className="text-xs text-basic space-y-1">
-            <div className="flex justify-between">
-              <span>Size:</span>
-              <span>{modelInfo.size_display}</span>
-            </div>
-            {modelInfo.quantization && (
-              <div className="flex justify-between">
-                <span>Quantization:</span>
-                <span className="text-primary">{modelInfo.quantization}</span>
-              </div>
-            )}
-          </div>
-
+        <div className="space-y-3">
           <button
             onClick={handleUnloadModel}
-            className="w-full mt-2 px-3 py-1.5 text-xs bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
+            className="w-full px-3 py-2 text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-all"
           >
             Unload Model
           </button>
           
           <button
             onClick={handleSelectModel}
-            className="w-full px-3 py-1.5 text-xs bg-tertiary text-content rounded hover:bg-tertiary/80 transition-colors"
+            className="w-full px-3 py-2 text-xs bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-lg hover:bg-slate-700/70 transition-all"
           >
             Change Model
           </button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {loading ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                <span className="text-xs text-basic">{progress.status}</span>
+                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-xs text-slate-400">{progress.status}</span>
               </div>
-              <div className="w-full bg-tertiary rounded-full h-1.5">
+              <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-cyan-500 to-teal-400 h-1.5 rounded-full transition-all duration-300"
                   style={{ width: `${progress.progress * 100}%` }}
                 />
               </div>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500" />
-                <span className="text-xs text-basic">{progress.status}</span>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-slate-500" />
+                <span className="text-xs text-slate-400">{progress.status}</span>
               </div>
               
               <button
                 onClick={handleSelectModel}
-                className="w-full px-3 py-2 text-sm bg-primary text-base rounded hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                className="glow-button w-full px-3 py-2.5 text-sm rounded-lg flex items-center justify-center gap-2"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -221,12 +201,12 @@ export function ModelLoader({ onModelLoaded, onModelUnloaded }: ModelLoaderProps
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
-                Load GGUF Model
+                Load GGUF
               </button>
 
               <button
                 onClick={handleLoadLastModel}
-                className="w-full px-3 py-1.5 text-xs bg-tertiary text-content rounded hover:bg-tertiary/80 transition-colors"
+                className="w-full px-3 py-2 text-xs bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-lg hover:bg-slate-700/70 transition-all"
               >
                 Load Last Model
               </button>

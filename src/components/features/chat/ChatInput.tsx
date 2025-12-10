@@ -99,10 +99,10 @@ export function ChatInput({
   return (
     <div
       {...getRootProps()}
-      className={`relative rounded-xl border transition-colors ${
+      className={`relative transition-all ${
         isDragActive
-          ? "border-primary bg-primary/10"
-          : "border-tertiary bg-base-secondary"
+          ? "ring-2 ring-cyan-400/50"
+          : ""
       }`}
     >
       <input {...getInputProps()} />
@@ -115,17 +115,17 @@ export function ChatInput({
       />
 
       {isDragActive && (
-        <div className="absolute inset-0 flex items-center justify-center bg-primary/20 rounded-xl z-10">
-          <div className="text-primary font-medium">Drop files here...</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-cyan-500/10 rounded-3xl z-10 backdrop-blur-sm">
+          <div className="text-cyan-400 font-medium">Drop files here...</div>
         </div>
       )}
 
       {attachedFiles.length > 0 && (
-        <div className="flex flex-wrap gap-2 p-3 pb-0">
+        <div className="flex flex-wrap gap-2 px-4 pt-3 pb-0">
           {attachedFiles.map((file, index) => (
             <div
               key={index}
-              className="flex items-center gap-2 px-2 py-1 bg-tertiary rounded text-xs text-content"
+              className="flex items-center gap-2 px-2 py-1 bg-slate-700/50 border border-slate-600/50 rounded-lg text-xs text-slate-300"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -137,6 +137,7 @@ export function ChatInput({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="text-cyan-400"
               >
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
@@ -144,10 +145,10 @@ export function ChatInput({
               <span className="truncate max-w-[120px]" title={file.name}>
                 {file.name}
               </span>
-              <span className="text-basic">({formatFileSize(file.size)})</span>
+              <span className="text-slate-500">({formatFileSize(file.size)})</span>
               <button
                 onClick={() => removeFile(index)}
-                className="text-basic hover:text-red-400 transition-colors"
+                className="text-slate-500 hover:text-red-400 transition-colors"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -169,12 +170,12 @@ export function ChatInput({
         </div>
       )}
 
-      <div className="flex items-end gap-3 p-4">
+      <div className="flex items-end gap-3 px-4 py-3">
         <button
           type="button"
           onClick={handleFileSelect}
           disabled={disabled}
-          className="p-2 text-basic hover:text-content rounded-lg hover:bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="p-2 text-slate-400 hover:text-cyan-400 rounded-lg hover:bg-slate-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           title="Attach files"
         >
           <svg
@@ -200,22 +201,22 @@ export function ChatInput({
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="flex-1 bg-transparent text-content placeholder-basic resize-none focus:outline-none min-h-[24px] max-h-[200px] overflow-y-auto custom-scrollbar"
+          className="flex-1 bg-transparent text-slate-100 placeholder-slate-500 resize-none focus:outline-none min-h-[24px] max-h-[200px] overflow-y-auto custom-scrollbar"
         />
 
         <button
           onClick={handleSubmit}
           disabled={disabled || (!message.trim() && attachedFiles.length === 0)}
-          className="p-2 bg-primary text-base rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="p-2.5 bg-gradient-to-r from-cyan-500 to-teal-400 text-slate-900 rounded-xl hover:from-cyan-400 hover:to-teal-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-500/25"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
