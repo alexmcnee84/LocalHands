@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ChatInput, ChatMessage, Message } from "./components/features/chat";
+import { ChatInput, Message } from "./components/features/chat";
 import { ModelLoader } from "./components/features/model";
 
 interface ModelInfo {
