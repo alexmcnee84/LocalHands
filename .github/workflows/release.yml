@@ -123,7 +123,7 @@ jobs:
         run: tauri android init
 
       - name: Build Android APK
-        run: tauri android build --apk
+        run: tauri android build --target aarch64 --apk true
         env:
           NDK_HOME: ${{ env.NDK_HOME }}
 
