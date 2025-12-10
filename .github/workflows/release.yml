@@ -17,6 +17,9 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest

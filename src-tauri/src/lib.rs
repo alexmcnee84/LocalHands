@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use directories::ProjectDirs;
 use std::fs;
+use std::env;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
@@ -101,6 +102,57 @@ fn generate_response(prompt: String, max_tokens: Option<u32>) -> Result<Inferenc
     model::generate_response(&prompt, max)
 }
 
+fn get_workspace_dir() -> Result<PathBuf, String> {
+    let dirs = ProjectDirs::from("com", "localhands", "LocalHands")
+        .ok_or("Failed to get project directories")?;
+    let workspace = dirs.data_dir().join("workspace");
+    fs::create_dir_all(&workspace)
+        .map_err(|e| format!("Failed to create workspace directory: {}", e))?;
+    Ok(workspace)
+}
+
+#[tauri::command]
+fn upload_file_to_workspace(file_name: String, file_data: Vec<u8>) -> Result<String, String> {
+    let workspace = get_workspace_dir()?;
+    let file_path = workspace.join(&file_name);
+    
+    fs::write(&file_path, &file_data)
+        .map_err(|e| format!("Failed to write file: {}", e))?;
+    
+    Ok(file_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn get_workspace_files() -> Result<Vec<String>, String> {
+    let workspace = get_workspace_dir()?;
+    
+    let files: Vec<String> = fs::read_dir(&workspace)
+        .map_err(|e| format!("Failed to read workspace: {}", e))?
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.path().is_file())
+        .map(|entry| entry.file_name().to_string_lossy().to_string())
+        .collect();
+    
+    Ok(files)
+}
+
+#[tauri::command]
+fn set_ollama_model_path(path: String) -> Result<(), String> {
+    env::set_var("OLLAMA_MODEL_PATH", &path);
+    
+    let mut config = load_config();
+    config.last_model_path = Some(path);
+    save_config(&config)?;
+    
+    Ok(())
+}
+
+#[tauri::command]
+fn get_ollama_model_path() -> Option<String> {
+    env::var("OLLAMA_MODEL_PATH").ok()
+        .or_else(|| load_config().last_model_path)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -116,7 +168,11 @@ pub fn run() {
             get_loading_progress,
             is_model_loaded,
             get_last_model_path,
-            generate_response
+            generate_response,
+            upload_file_to_workspace,
+            get_workspace_files,
+            set_ollama_model_path,
+            get_ollama_model_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

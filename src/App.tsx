@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Sidebar } from "./components/shared";
-import { ChatInput, ChatMessage, Message } from "./components/features/chat";
+import { ChatInput, ChatMessage, Message, FileDropzone, UploadedFile } from "./components/features/chat";
 import { ModelLoader } from "./components/features/model";
 
 interface ModelInfo {
@@ -23,7 +23,13 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [modelLoaded, setModelLoaded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [_uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const handleFilesUploaded = (files: UploadedFile[]) => {
+    setUploadedFiles((prev) => [...prev, ...files]);
+    console.log("Files uploaded:", files);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -173,11 +179,13 @@ function App() {
         {/* Input Area */}
         <div className="p-4 border-t border-tertiary bg-base">
           <div className="max-w-3xl mx-auto">
-            <ChatInput
-              onSend={handleSendMessage}
-              disabled={isGenerating}
-              placeholder={isGenerating ? "Generating response..." : (modelLoaded ? "Message LocalHands..." : "Load a model to start chatting...")}
-            />
+            <FileDropzone onFilesUploaded={handleFilesUploaded}>
+              <ChatInput
+                onSend={handleSendMessage}
+                disabled={isGenerating}
+                placeholder={isGenerating ? "Generating response..." : (modelLoaded ? "Message LocalHands..." : "Load a model to start chatting...")}
+              />
+            </FileDropzone>
           </div>
         </div>
       </main>
