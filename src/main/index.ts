@@ -216,6 +216,43 @@ function setupIpcHandlers(): void {
     }
     return { success: false };
   });
+
+  // Upload media into the workspace
+  ipcMain.handle('upload-media', async () => {
+    try {
+      if (!mainWindow) {
+        return { success: false, error: 'No active window' };
+      }
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile'],
+        filters: [
+          { name: 'Images and Media', extensions: ['png', 'jpg', 'jpeg', 'gif', 'mp4', 'mp3', 'wav', 'webm', 'mov'] },
+          { name: 'All Files', extensions: ['*'] },
+        ],
+        title: 'Select a media file to upload',
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false };
+      }
+
+      const selectedPath = result.filePaths[0];
+      const fileName = path.basename(selectedPath);
+
+      // Ensure workspace directory exists
+      ensureWorkspaceDir();
+
+      const destPath = path.join(config.workspaceDir, fileName);
+
+      // Copy the selected file into the workspace directory
+      await fs.promises.copyFile(selectedPath, destPath);
+
+      return { success: true, fileName };
+    } catch (err) {
+      console.error('Failed to upload media:', err);
+      return { success: false, error: (err as Error).message };
+    }
+  });
 }
 
 // App lifecycle

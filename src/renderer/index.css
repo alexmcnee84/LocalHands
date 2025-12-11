@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Custom animations for the LocalHands UI.
+  The wave animation is used by the AnimatedHands component to
+  rotate a hand emoji gently back and forth. Adjust the degrees
+  or timing if you want a snappier or slower wave.
+*/
+@keyframes wave-animation {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-20deg); }
+  75% { transform: rotate(20deg); }
+}
+
+/* Apply the wave animation infinitely with a gentle pace */
+.animate-wave {
+  animation: wave-animation 2.5s infinite ease-in-out;
+}
+
 * {
   box-sizing: border-box;
 }

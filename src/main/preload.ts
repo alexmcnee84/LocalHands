@@ -77,6 +77,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on(IPC_CHANNELS.MODEL_LOADED, listener);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.MODEL_LOADED, listener);
   },
+
+  /**
+   * Trigger a native file selection dialog for uploading media. The main process
+   * handles copying the selected file(s) into the current workspace. The
+   * returned object contains a success flag and, on success, the fileName.
+   */
+  uploadMedia: () =>
+    ipcRenderer.invoke('upload-media'),
 });
 
 // Type declaration for the exposed API
@@ -99,6 +107,12 @@ declare global {
       onError: (callback: (error: string) => void) => () => void;
       onComplete: (callback: () => void) => () => void;
       onModelLoaded: (callback: (data: { success: boolean; modelPath?: string; error?: string }) => void) => () => void;
+
+      /**
+       * Open a file picker to upload media into the workspace. Returns
+       * an object with a success boolean and optional fileName or error.
+       */
+      uploadMedia: () => Promise<{ success: boolean; fileName?: string; error?: string }>;
     };
   }
 }

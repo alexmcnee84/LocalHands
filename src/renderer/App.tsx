@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { Message, ToolResult } from '../shared/types';
 import ChatWindow from './components/ChatWindow';
 import Sidebar from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
+import AnimatedHands from './components/AnimatedHands';
 
 interface AppConfig {
   workspaceDir: string;
@@ -29,11 +31,16 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Access the preload-injected API. Casting to any avoids type
+  // checker errors when global declarations are missing during
+  // type compilation.
+  const electronAPI = (window as any).electronAPI;
+
   // Load initial config
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const cfg = await window.electronAPI.getConfig();
+        const cfg = await electronAPI.getConfig();
         setConfig(cfg as AppConfig);
       } catch (err) {
         console.error('Failed to load config:', err);
@@ -44,12 +51,12 @@ const App: React.FC = () => {
 
   // Set up event listeners
   useEffect(() => {
-    const unsubMessage = window.electronAPI.onMessage((message: Message) => {
+    const unsubMessage = electronAPI.onMessage((message: Message) => {
       setMessages(prev => [...prev, message]);
       setStreamingContent('');
     });
 
-    const unsubToolStart = window.electronAPI.onToolStart((data) => {
+    const unsubToolStart = electronAPI.onToolStart((data) => {
       setCurrentToolExecution({
         toolName: data.toolName,
         args: data.args,
@@ -57,7 +64,7 @@ const App: React.FC = () => {
       });
     });
 
-    const unsubToolEnd = window.electronAPI.onToolEnd((data) => {
+    const unsubToolEnd = electronAPI.onToolEnd((data) => {
       setCurrentToolExecution({
         toolName: data.toolName,
         args: {},
@@ -68,16 +75,16 @@ const App: React.FC = () => {
       setTimeout(() => setCurrentToolExecution(null), 500);
     });
 
-    const unsubToken = window.electronAPI.onToken((token: string) => {
+    const unsubToken = electronAPI.onToken((token: string) => {
       setStreamingContent(prev => prev + token);
     });
 
-    const unsubError = window.electronAPI.onError((err: string) => {
+    const unsubError = electronAPI.onError((err: string) => {
       setError(err);
       setIsProcessing(false);
     });
 
-    const unsubComplete = window.electronAPI.onComplete(() => {
+    const unsubComplete = electronAPI.onComplete(() => {
       setIsProcessing(false);
       setStreamingContent('');
     });
@@ -106,7 +113,7 @@ const App: React.FC = () => {
     setInputValue('');
 
     try {
-      await window.electronAPI.sendMessage(message);
+      await electronAPI.sendMessage(message);
     } catch (err) {
       setError((err as Error).message);
       setIsProcessing(false);
@@ -115,7 +122,7 @@ const App: React.FC = () => {
 
   const handleCancel = useCallback(async () => {
     try {
-      await window.electronAPI.cancelGeneration();
+      await electronAPI.cancelGeneration();
       setIsProcessing(false);
     } catch (err) {
       console.error('Failed to cancel:', err);
@@ -124,21 +131,48 @@ const App: React.FC = () => {
 
   const handleClearHistory = useCallback(async () => {
     try {
-      await window.electronAPI.clearHistory();
+      await electronAPI.clearHistory();
       setMessages([]);
     } catch (err) {
       console.error('Failed to clear history:', err);
     }
   }, []);
 
+  /**
+   * Trigger a file upload dialog via the preload-exposed API. After the
+   * upload completes, we optionally append a system message to the
+   * conversation to inform the user. If the upload fails, the error
+   * state is updated to reflect the problem.
+   */
+  const handleUploadMedia = useCallback(async () => {
+    try {
+      const result = await electronAPI.uploadMedia();
+      if (result && result.success && result.fileName) {
+        // Inform the user of the uploaded file via a system message
+        const systemMsg = {
+          id: uuidv4(),
+          role: 'system' as const,
+          content: `File uploaded: ${result.fileName}`,
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, systemMsg]);
+      } else if (result && !result.success && result.error) {
+        setError(result.error);
+      }
+    } catch (err) {
+      console.error('File upload failed:', err);
+      setError((err as Error).message);
+    }
+  }, []);
+
   const handleLoadModel = useCallback(async () => {
     try {
-      const result = await window.electronAPI.selectModel();
+      const result = await electronAPI.selectModel();
       if (result.success && result.modelPath) {
         setIsProcessing(true);
-        const loadResult = await window.electronAPI.loadModel(result.modelPath);
+        const loadResult = await electronAPI.loadModel(result.modelPath);
         if (loadResult.success) {
-          const newConfig = await window.electronAPI.getConfig();
+          const newConfig = await electronAPI.getConfig();
           setConfig(newConfig as AppConfig);
           setError(null);
         } else {
@@ -154,9 +188,9 @@ const App: React.FC = () => {
 
   const handleSetWorkspace = useCallback(async () => {
     try {
-      const result = await window.electronAPI.setWorkspace();
+      const result = await electronAPI.setWorkspace();
       if (result.success) {
-        const newConfig = await window.electronAPI.getConfig();
+        const newConfig = await electronAPI.getConfig();
         setConfig(newConfig as AppConfig);
       }
     } catch (err) {
@@ -166,6 +200,9 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-900 text-white">
+      {/* Top accent bar */}
+      <div className="absolute top-0 left-0 right-0 h-2 bg-green-600"></div>
+
       {/* Sidebar */}
       <Sidebar
         config={config}
@@ -178,7 +215,7 @@ const App: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="h-14 border-b border-gray-700 flex items-center px-4">
+        <header className="h-14 border-b-2 border-green-600 flex items-center px-4 relative">
           <h1 className="text-lg font-semibold">LocalHands</h1>
           <span className="ml-2 text-sm text-gray-400">
             {config?.modelLoaded ? 'Model loaded' : 'No model loaded'}
@@ -189,6 +226,9 @@ const App: React.FC = () => {
             </span>
           )}
         </header>
+
+        {/* Animated hands banner */}
+        <AnimatedHands />
 
         {/* Error Banner */}
         {error && (
@@ -228,6 +268,17 @@ const App: React.FC = () => {
         {/* Input Area */}
         <div className="border-t border-gray-700 p-4">
           <div className="flex gap-2">
+            {/* Attach media button */}
+            <button
+              onClick={handleUploadMedia}
+              title="Upload media"
+              className="flex items-center justify-center px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50"
+            >
+              {/* Paperclip emoji used as a simple attach icon */}
+              <span role="img" aria-label="attach" className="text-xl">
+                📎
+              </span>
+            </button>
             <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}

@@ -1,0 +1,100 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and package
+        run: npm run package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List release files
+        run: |
+          Get-ChildItem -Path release -Recurse | Select-Object FullName, Length
+        shell: pwsh
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: |
+            release/*.exe
+          if-no-files-found: warn
+
+  create-release:
+    needs: [build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-exe
+          path: release-assets
+
+      - name: List artifacts
+        run: |
+          echo "Release assets:"
+          find release-assets -type f -ls 2>/dev/null || echo "No artifacts found"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: LocalHands ${{ github.ref_name }}
+          body: |
+            ## LocalHands ${{ github.ref_name }}
+            
+            Local AI assistant with OpenHands-style sandbox capabilities.
+            
+            ### Downloads
+            
+            - **Windows**: `LocalHands Setup *.exe` - Windows installer
+            
+            ### Features
+            
+            - Modern chat interface with animated hands logo
+            - Local LLM inference with node-llama-cpp
+            - OpenHands-style tool use (bash, file editor, browser)
+            - Sidebar for conversation management
+            - Settings modal for model configuration
+            
+            ### How to Use
+            
+            1. Download and run the Windows installer
+            2. Load your GGUF model file in Settings
+            3. Start chatting with your local AI assistant
+            
+            ### Requirements
+            
+            - Windows 10 or later
+            - GGUF model file (not included)
+          draft: false
+          prerelease: false
+          files: |
+            release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
