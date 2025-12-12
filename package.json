@@ -50,6 +50,9 @@
       "dist/**/*",
       "package.json"
     ],
+    "asarUnpack": [
+      "node_modules/node-llama-cpp/**/*"
+    ],
     "mac": {
       "target": "dmg"
     },
