@@ -1,7 +1,27 @@
-import { getLlama, LlamaModel, LlamaContext, LlamaChatSession, ChatHistoryItem, Token } from 'node-llama-cpp';
-import * as path from 'path';
 import * as fs from 'fs';
 import { ToolDefinition, ToolCall } from '../shared/types';
+
+// Define types inline to avoid importing from ESM module at compile time
+interface LlamaModelType {
+  loadModel(options: { modelPath: string; gpuLayers?: number }): Promise<any>;
+  dispose(): Promise<void>;
+}
+
+interface LlamaContextType {
+  getSequence(): any;
+  dispose(): Promise<void>;
+}
+
+interface LlamaChatSessionType {
+  prompt(text: string, options?: any): Promise<string>;
+}
+
+// Helper to dynamically import ESM module at runtime
+// Using Function constructor to prevent TypeScript from transforming import() to require()
+async function importNodeLlamaCpp(): Promise<any> {
+  const importFn = new Function('specifier', 'return import(specifier)');
+  return importFn('node-llama-cpp');
+}
 
 export interface LLMConfig {
   modelPath: string;
@@ -24,14 +44,24 @@ export interface ChatMessage {
 }
 
 export class LLMManager {
-  private llama: Awaited<ReturnType<typeof getLlama>> | null = null;
-  private model: LlamaModel | null = null;
-  private context: LlamaContext | null = null;
-  private session: LlamaChatSession | null = null;
+  private llamaModule: any = null;
+  private llama: any = null;
+  private model: any = null;
+  private context: any = null;
+  private session: any = null;
   private isLoaded: boolean = false;
   private currentModelPath: string | null = null;
   private tools: ToolDefinition[] = [];
   private systemPrompt: string = '';
+
+  // Lazily load the node-llama-cpp module using dynamic import
+  // Uses Function constructor to prevent TypeScript from transforming import() to require()
+  private async getLlamaModule(): Promise<any> {
+    if (!this.llamaModule) {
+      this.llamaModule = await importNodeLlamaCpp();
+    }
+    return this.llamaModule;
+  }
 
   async loadModel(config: LLMConfig): Promise<void> {
     const { modelPath, contextSize = 4096, gpuLayers = 0, threads } = config;
@@ -45,6 +75,8 @@ export class LLMManager {
 
     console.log(`Loading model from: ${modelPath}`);
 
+    // Use dynamic import to load the ESM module
+    const { getLlama } = await this.getLlamaModule();
     this.llama = await getLlama();
     
     this.model = await this.llama.loadModel({
@@ -196,7 +228,7 @@ IMPORTANT: Always use the exact tool names and parameter names as specified abov
     const fullSystemPrompt = this.systemPrompt + this.buildToolsPrompt();
 
     // Convert messages to chat history format
-    const chatHistory: ChatHistoryItem[] = [];
+    const chatHistory: Array<{ type: string; text?: string; response?: string[] }> = [];
 
     // Add system message
     if (fullSystemPrompt) {
@@ -240,6 +272,8 @@ IMPORTANT: Always use the exact tool names and parameter names as specified abov
       }
     }
 
+    // Use dynamic import to get LlamaChatSession
+    const { LlamaChatSession } = await this.getLlamaModule();
     this.session = new LlamaChatSession({
       contextSequence: this.context.getSequence(),
     });
@@ -248,7 +282,7 @@ IMPORTANT: Always use the exact tool names and parameter names as specified abov
 
     try {
       const response = await this.session.prompt(conversationPrompt, {
-        onTextChunk: (chunk) => {
+        onTextChunk: (chunk: string) => {
           fullResponse += chunk;
           if (onToken) {
             onToken(chunk);
@@ -284,6 +318,8 @@ IMPORTANT: Always use the exact tool names and parameter names as specified abov
       throw new Error('Model not loaded. Call loadModel() first.');
     }
 
+    // Use dynamic import to get LlamaChatSession
+    const { LlamaChatSession } = await this.getLlamaModule();
     const session = new LlamaChatSession({
       contextSequence: this.context.getSequence(),
     });
@@ -292,7 +328,7 @@ IMPORTANT: Always use the exact tool names and parameter names as specified abov
 
     try {
       response = await session.prompt(prompt, {
-        onTextChunk: (chunk) => {
+        onTextChunk: (chunk: string) => {
           response += chunk;
           if (onToken) {
             onToken(chunk);
