@@ -8,18 +8,18 @@ interface SidebarProps {
     confirmDestructive: boolean;
     maxIterations: number;
   } | null;
-  onLoadModel: () => void;
   onSetWorkspace: () => void;
   onClearHistory: () => void;
   onOpenSettings: () => void;
+  onUploadMedia: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
   config,
-  onLoadModel,
   onSetWorkspace,
   onClearHistory,
   onOpenSettings,
+  onUploadMedia,
 }) => {
   return (
     <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
@@ -28,30 +28,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         <span className="text-xl font-bold text-blue-400">🤖 LocalHands</span>
       </div>
 
-      {/* Model Status */}
-      <div className="p-4 border-b border-gray-700">
-        <div className="text-sm text-gray-400 mb-2">Model Status</div>
-        <div className={`flex items-center gap-2 ${config?.modelLoaded ? 'text-green-400' : 'text-yellow-400'}`}>
-          <div className={`w-2 h-2 rounded-full ${config?.modelLoaded ? 'bg-green-400' : 'bg-yellow-400'}`} />
-          <span className="text-sm">
-            {config?.modelLoaded ? 'Loaded' : 'Not loaded'}
-          </span>
-        </div>
-        {config?.modelPath && (
-          <div className="mt-2 text-xs text-gray-500 truncate" title={config.modelPath}>
-            {config.modelPath.split('/').pop()}
-          </div>
-        )}
-      </div>
-
       {/* Actions */}
       <div className="flex-1 p-4 space-y-2">
         <button
-          onClick={onLoadModel}
+          onClick={onUploadMedia}
           className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors flex items-center gap-2"
         >
-          <span>📂</span>
-          <span>Load Model</span>
+          <span>📎</span>
+          <span>Attach Files</span>
         </button>
 
         <button

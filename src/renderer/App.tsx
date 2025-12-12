@@ -15,6 +15,7 @@ interface AppConfig {
 }
 
 interface ToolExecution {
+  id: string;
   toolName: string;
   args: Record<string, unknown>;
   status: 'running' | 'completed' | 'error';
@@ -26,7 +27,7 @@ const App: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [config, setConfig] = useState<AppConfig | null>(null);
-  const [currentToolExecution, setCurrentToolExecution] = useState<ToolExecution | null>(null);
+  const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([]);
   const [streamingContent, setStreamingContent] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,22 +58,32 @@ const App: React.FC = () => {
     });
 
     const unsubToolStart = electronAPI.onToolStart((data) => {
-      setCurrentToolExecution({
-        toolName: data.toolName,
-        args: data.args,
-        status: 'running',
-      });
+      setToolExecutions(prev => [
+        ...prev,
+        {
+          id: uuidv4(),
+          toolName: data.toolName,
+          args: data.args,
+          status: 'running',
+        },
+      ]);
     });
 
     const unsubToolEnd = electronAPI.onToolEnd((data) => {
-      setCurrentToolExecution({
-        toolName: data.toolName,
-        args: {},
-        status: data.result.success ? 'completed' : 'error',
-        result: data.result,
+      setToolExecutions(prev => {
+        if (prev.length === 0) return prev;
+        const lastIndex = prev.length - 1;
+        const last = prev[lastIndex];
+        if (last.status !== 'running') return prev;
+
+        const updated = [...prev];
+        updated[lastIndex] = {
+          ...last,
+          status: data.result.success ? 'completed' : 'error',
+          result: data.result,
+        };
+        return updated;
       });
-      // Clear after a short delay
-      setTimeout(() => setCurrentToolExecution(null), 500);
     });
 
     const unsubToken = electronAPI.onToken((token: string) => {
@@ -102,13 +113,9 @@ const App: React.FC = () => {
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || isProcessing) return;
 
-    if (!config?.modelLoaded) {
-      setError('Please load a model first. Click the settings icon to select a GGUF model.');
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
+    setToolExecutions([]); // Clear previous actions
     const message = inputValue;
     setInputValue('');
 
@@ -118,7 +125,7 @@ const App: React.FC = () => {
       setError((err as Error).message);
       setIsProcessing(false);
     }
-  }, [inputValue, isProcessing, config?.modelLoaded]);
+  }, [inputValue, isProcessing]);
 
   const handleCancel = useCallback(async () => {
     try {
@@ -206,10 +213,10 @@ const App: React.FC = () => {
       {/* Sidebar */}
       <Sidebar
         config={config}
-        onLoadModel={handleLoadModel}
         onSetWorkspace={handleSetWorkspace}
         onClearHistory={handleClearHistory}
         onOpenSettings={() => setShowSettings(true)}
+        onUploadMedia={handleUploadMedia}
       />
 
       {/* Main Content */}
@@ -217,9 +224,7 @@ const App: React.FC = () => {
         {/* Header */}
         <header className="h-14 border-b-2 border-green-600 flex items-center px-4 relative">
           <h1 className="text-lg font-semibold">LocalHands</h1>
-          <span className="ml-2 text-sm text-gray-400">
-            {config?.modelLoaded ? 'Model loaded' : 'No model loaded'}
-          </span>
+          <span className="ml-2 text-sm text-gray-400">AI Assistant</span>
           {config?.workspaceDir && (
             <span className="ml-auto text-sm text-gray-500 truncate max-w-md">
               Workspace: {config.workspaceDir}
@@ -243,21 +248,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Tool Execution Status */}
-        {currentToolExecution && (
-          <div className="bg-blue-900/30 border-b border-blue-700 px-4 py-2">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${
-                currentToolExecution.status === 'running' ? 'bg-yellow-400 animate-pulse' :
-                currentToolExecution.status === 'completed' ? 'bg-green-400' : 'bg-red-400'
-              }`} />
-              <span className="text-sm text-blue-200">
-                {currentToolExecution.status === 'running' ? 'Executing' : 'Completed'}: {currentToolExecution.toolName}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Chat Window */}
         <ChatWindow
           messages={messages}
@@ -267,14 +257,16 @@ const App: React.FC = () => {
 
         {/* Input Area */}
         <div className="border-t border-gray-700 p-4">
+          <div className="text-xs text-gray-400 mb-2">
+            Give LocalHands a task; it will plan steps and run tools in your workspace.
+          </div>
           <div className="flex gap-2">
             {/* Attach media button */}
             <button
               onClick={handleUploadMedia}
-              title="Upload media"
+              title="Attach files"
               className="flex items-center justify-center px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50"
             >
-              {/* Paperclip emoji used as a simple attach icon */}
               <span role="img" aria-label="attach" className="text-xl">
                 📎
               </span>
@@ -288,8 +280,8 @@ const App: React.FC = () => {
                   handleSendMessage();
                 }
               }}
-              placeholder={config?.modelLoaded ? "Type your message..." : "Load a model to start chatting..."}
-              disabled={!config?.modelLoaded || isProcessing}
+              placeholder="Describe what you want LocalHands to do (e.g. 'scan this repo and list bugs')."
+              disabled={isProcessing}
               className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 resize-none focus:outline-none focus:border-blue-500 disabled:opacity-50"
               rows={2}
             />
@@ -304,7 +296,7 @@ const App: React.FC = () => {
               ) : (
                 <button
                   onClick={handleSendMessage}
-                  disabled={!config?.modelLoaded || !inputValue.trim()}
+                  disabled={!inputValue.trim()}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Send
@@ -312,6 +304,26 @@ const App: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Actions/Steps Panel */}
+          {toolExecutions.length > 0 && (
+            <div className="mt-3 bg-gray-800 border border-gray-700 rounded-lg p-3">
+              <div className="text-xs text-gray-400 mb-2 font-medium">Actions</div>
+              <div className="space-y-1">
+                {toolExecutions.slice(-5).map((exec) => (
+                  <div key={exec.id} className="flex items-center gap-2 text-sm">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      exec.status === 'running' ? 'bg-yellow-400 animate-pulse' :
+                      exec.status === 'completed' ? 'bg-green-400' : 'bg-red-400'
+                    }`} />
+                    <span className="text-gray-300 truncate">
+                      {exec.status === 'running' ? 'Running' : exec.status === 'completed' ? 'Done' : 'Error'}: {exec.toolName}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -320,7 +332,6 @@ const App: React.FC = () => {
         <SettingsModal
           config={config}
           onClose={() => setShowSettings(false)}
-          onLoadModel={handleLoadModel}
           onSetWorkspace={handleSetWorkspace}
         />
       )}
