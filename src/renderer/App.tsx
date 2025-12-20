@@ -230,9 +230,9 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white">
-      {/* Top accent bar */}
-      <div className="absolute top-0 left-0 right-0 h-2 bg-green-600"></div>
+    <div className="flex h-screen bg-[#0d1117] text-white">
+      {/* Top accent bar - Mistral cyan */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-cyan-400 to-cyan-500"></div>
 
       {/* Sidebar */}
       <Sidebar
@@ -245,10 +245,10 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="h-14 border-b-2 border-green-600 flex items-center px-4 relative">
-          <h1 className="text-lg font-semibold">LocalHands</h1>
-          <span className="ml-2 text-sm text-gray-400">AI Assistant</span>
+        {/* Header - Mistral style */}
+        <header className="h-14 border-b border-gray-800 flex items-center px-6 bg-[#161b22]">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">LocalHands</h1>
+          <span className="ml-3 text-sm text-gray-500">Local AI Assistant</span>
           
           {/* Temperature Control */}
           <div className="ml-4 relative">
@@ -333,75 +333,87 @@ const App: React.FC = () => {
           isProcessing={isProcessing}
         />
 
-        {/* Input Area */}
-        <div className="border-t border-gray-700 p-4">
-          <div className="text-xs text-gray-400 mb-2">
-            Give LocalHands a task; it will plan steps and run tools in your workspace.
-          </div>
-          <div className="flex gap-2">
-            {/* Attach media button */}
-            <button
-              onClick={handleUploadMedia}
-              title="Attach files"
-              className="flex items-center justify-center px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50"
-            >
-              <span role="img" aria-label="attach" className="text-xl">
-                📎
-              </span>
-            </button>
-            <textarea
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              placeholder="Describe what you want LocalHands to do (e.g. 'scan this repo and list bugs')."
-              disabled={isProcessing}
-              className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 resize-none focus:outline-none focus:border-blue-500 disabled:opacity-50"
-              rows={2}
-            />
-            <div className="flex flex-col gap-2">
-              {isProcessing ? (
-                <button
-                  onClick={handleCancel}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-              ) : (
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!inputValue.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Send
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Actions/Steps Panel */}
-          {toolExecutions.length > 0 && (
-            <div className="mt-3 bg-gray-800 border border-gray-700 rounded-lg p-3">
-              <div className="text-xs text-gray-400 mb-2 font-medium">Actions</div>
-              <div className="space-y-1">
-                {toolExecutions.slice(-5).map((exec) => (
-                  <div key={exec.id} className="flex items-center gap-2 text-sm">
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      exec.status === 'running' ? 'bg-yellow-400 animate-pulse' :
-                      exec.status === 'completed' ? 'bg-green-400' : 'bg-red-400'
-                    }`} />
-                    <span className="text-gray-300 truncate">
-                      {exec.status === 'running' ? 'Running' : exec.status === 'completed' ? 'Done' : 'Error'}: {exec.toolName}
-                    </span>
-                  </div>
-                ))}
+        {/* Input Area - Mistral style centered */}
+        <div className="border-t border-gray-800 p-6 bg-[#161b22]">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex gap-3">
+              {/* Attach media button */}
+              <button
+                onClick={handleUploadMedia}
+                title="Attach files (txt, rtf, pdf, jpeg, png)"
+                className="flex items-center justify-center w-12 h-12 bg-[#21262d] border border-gray-700 rounded-xl hover:bg-[#30363d] hover:border-cyan-500/50 transition-all"
+              >
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
+              <div className="flex-1 relative">
+                <textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="What would you like LocalHands to do?"
+                  disabled={isProcessing}
+                  className="w-full bg-[#21262d] border border-gray-700 rounded-xl px-4 py-3 resize-none focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-50 placeholder-gray-500"
+                  rows={2}
+                />
+              </div>
+              <div className="flex flex-col justify-center">
+                {isProcessing ? (
+                  <button
+                    onClick={handleCancel}
+                    className="w-12 h-12 flex items-center justify-center bg-red-600/20 border border-red-500/50 hover:bg-red-600/30 rounded-xl transition-all"
+                  >
+                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!inputValue.trim()}
+                    className="w-12 h-12 flex items-center justify-center bg-cyan-600 hover:bg-cyan-500 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-cyan-600"
+                  >
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
-          )}
+
+            {/* Actions/Steps Panel - Mistral style */}
+            {toolExecutions.length > 0 && (
+              <div className="mt-4 bg-[#21262d] border border-gray-700 rounded-xl p-4">
+                <div className="text-xs text-cyan-400 mb-3 font-medium uppercase tracking-wide">Actions</div>
+                <div className="space-y-2">
+                  {toolExecutions.slice(-5).map((exec) => (
+                    <div key={exec.id} className="flex items-center gap-3 text-sm">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        exec.status === 'running' ? 'bg-cyan-400 animate-pulse' :
+                        exec.status === 'completed' ? 'bg-emerald-400' : 'bg-red-400'
+                      }`} />
+                      <span className="text-gray-300">
+                        <span className={`font-medium ${
+                          exec.status === 'running' ? 'text-cyan-400' :
+                          exec.status === 'completed' ? 'text-emerald-400' : 'text-red-400'
+                        }`}>
+                          {exec.status === 'running' ? 'Running' : exec.status === 'completed' ? 'Done' : 'Error'}
+                        </span>
+                        <span className="text-gray-500 mx-2">|</span>
+                        {exec.toolName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
