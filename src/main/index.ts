@@ -6,6 +6,7 @@ import { Agent, AgentEventHandlers } from './agent';
 import { getToolDefinitionsForLLM } from './tools';
 import { IPC_CHANNELS, AgentConfig, Message, ToolResult } from '../shared/types';
 import { memoryManager } from './memory';
+import { parseFile, detectFileType } from './file-parser';
 
 let mainWindow: BrowserWindow | null = null;
 let llmManager: LLMManager | null = null;
@@ -235,30 +236,48 @@ function setupIpcHandlers(): void {
         return { success: false, error: 'No active window' };
       }
       const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openFile'],
+        properties: ['openFile', 'multiSelections'],
         filters: [
-          { name: 'Images and Media', extensions: ['png', 'jpg', 'jpeg', 'gif', 'mp4', 'mp3', 'wav', 'webm', 'mov'] },
+          { name: 'Supported Files', extensions: ['txt', 'rtf', 'pdf', 'jpg', 'jpeg', 'png'] },
+          { name: 'Text Files', extensions: ['txt', 'rtf'] },
+          { name: 'PDF Documents', extensions: ['pdf'] },
+          { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif'] },
           { name: 'All Files', extensions: ['*'] },
         ],
-        title: 'Select a media file to upload',
+        title: 'Select files to upload',
       });
 
       if (result.canceled || result.filePaths.length === 0) {
         return { success: false };
       }
 
-      const selectedPath = result.filePaths[0];
-      const fileName = path.basename(selectedPath);
+      const uploadedFiles: Array<{ fileName: string; type: string; textContent?: string }> = [];
 
-      // Ensure workspace directory exists
-      ensureWorkspaceDir();
+      for (const selectedPath of result.filePaths) {
+        const fileName = path.basename(selectedPath);
 
-      const destPath = path.join(config.workspaceDir, fileName);
+        // Ensure workspace directory exists
+        ensureWorkspaceDir();
 
-      // Copy the selected file into the workspace directory
-      await fs.promises.copyFile(selectedPath, destPath);
+        const destPath = path.join(config.workspaceDir, fileName);
 
-      return { success: true, fileName };
+        // Copy the selected file into the workspace directory
+        await fs.promises.copyFile(selectedPath, destPath);
+
+        // Parse the file to extract text content
+        const parsed = await parseFile(destPath);
+        uploadedFiles.push({
+          fileName,
+          type: parsed.type,
+          textContent: parsed.textContent,
+        });
+      }
+
+      return { 
+        success: true, 
+        files: uploadedFiles,
+        fileName: uploadedFiles[0]?.fileName, // For backward compatibility
+      };
     } catch (err) {
       console.error('Failed to upload media:', err);
       return { success: false, error: (err as Error).message };
