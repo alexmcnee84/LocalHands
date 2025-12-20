@@ -43,8 +43,41 @@ jobs:
             release/*.exe
           if-no-files-found: warn
 
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and package for Linux
+        run: npm run package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List release files
+        run: |
+          ls -la release/
+          find release -type f -name "*.deb" -ls
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb
+          path: |
+            release/*.deb
+          if-no-files-found: warn
+
   create-release:
-    needs: [build-windows]
+    needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -53,6 +86,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: windows-exe
+          path: release-assets
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-deb
           path: release-assets
 
       - name: List artifacts
@@ -73,6 +112,7 @@ jobs:
             ### Downloads
             
             - **Windows**: `LocalHands Setup *.exe` - Windows installer
+            - **Linux**: `localhands_*.deb` - Debian/Ubuntu/Linux Mint package
             
             ### Features
             
@@ -84,13 +124,20 @@ jobs:
             
             ### How to Use
             
+            **Windows:**
             1. Download and run the Windows installer
             2. Load your GGUF model file in Settings
             3. Start chatting with your local AI assistant
             
+            **Linux (Debian/Ubuntu/Linux Mint):**
+            1. Download the .deb package
+            2. Install with: `sudo dpkg -i localhands_*.deb`
+            3. If dependencies are missing: `sudo apt-get install -f`
+            4. Launch LocalHands from your applications menu
+            
             ### Requirements
             
-            - Windows 10 or later
+            - Windows 10 or later, OR Linux Mint/Ubuntu/Debian
             - GGUF model file (not included)
           draft: false
           prerelease: false
