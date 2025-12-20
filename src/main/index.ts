@@ -5,6 +5,7 @@ import { LLMManager } from './llm';
 import { Agent, AgentEventHandlers } from './agent';
 import { getToolDefinitionsForLLM } from './tools';
 import { IPC_CHANNELS, AgentConfig, Message, ToolResult } from '../shared/types';
+import { memoryManager } from './memory';
 
 let mainWindow: BrowserWindow | null = null;
 let llmManager: LLMManager | null = null;
@@ -107,9 +108,19 @@ function setupIpcHandlers(): void {
     }
 
     try {
+      // Start a new conversation if needed
+      if (!memoryManager.listConversations().length) {
+        memoryManager.startNewConversation(
+          llmManager?.getModelPath() || undefined,
+          llmManager?.getTemperature()
+        );
+      }
+
       const handlers: AgentEventHandlers = {
         onMessage: (msg: Message) => {
           mainWindow?.webContents.send(IPC_CHANNELS.RECEIVE_MESSAGE, msg);
+          // Log message to memory bank
+          memoryManager.addMessage(msg);
         },
         onToolStart: (toolName: string, args: Record<string, unknown>) => {
           mainWindow?.webContents.send(IPC_CHANNELS.TOOL_EXECUTION_START, { toolName, args });
@@ -250,6 +261,62 @@ function setupIpcHandlers(): void {
       return { success: true, fileName };
     } catch (err) {
       console.error('Failed to upload media:', err);
+      return { success: false, error: (err as Error).message };
+    }
+  });
+
+  // Temperature control
+  ipcMain.handle(IPC_CHANNELS.SET_TEMPERATURE, async (_, temperature: number) => {
+    if (llmManager) {
+      llmManager.setTemperature(temperature);
+      return { success: true, temperature: llmManager.getTemperature() };
+    }
+    return { success: false, error: 'LLM not initialized' };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_TEMPERATURE, async () => {
+    if (llmManager) {
+      return { success: true, temperature: llmManager.getTemperature() };
+    }
+    return { success: true, temperature: 0.7 };
+  });
+
+  // Memory bank handlers
+  ipcMain.handle(IPC_CHANNELS.GET_MEMORY_STATS, async () => {
+    try {
+      const stats = await memoryManager.getMemoryStats();
+      return { success: true, ...stats };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LIST_CONVERSATIONS, async () => {
+    try {
+      const conversations = memoryManager.listConversations();
+      return { success: true, conversations };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LOAD_CONVERSATION, async (_, id: string) => {
+    try {
+      const conversation = memoryManager.loadConversation(id);
+      if (conversation) {
+        return { success: true, conversation };
+      }
+      return { success: false, error: 'Conversation not found' };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.CLEAR_MEMORY, async () => {
+    try {
+      memoryManager.clearCurrentConversation();
+      return { success: true };
+    } catch (err) {
       return { success: false, error: (err as Error).message };
     }
   });

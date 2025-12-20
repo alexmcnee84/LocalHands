@@ -61,6 +61,34 @@ export interface AgentConfig {
   modelPath?: string;
   confirmDestructive: boolean;
   maxIterations: number;
+  temperature?: number;
+}
+
+// Memory bank types for conversation logging
+export interface ConversationMeta {
+  id: string;
+  startedAt: number;
+  updatedAt: number;
+  title: string;
+  messageCount: number;
+  modelName?: string;
+  temperature?: number;
+}
+
+export interface ConversationLog {
+  meta: ConversationMeta;
+  messages: Message[];
+  attachments?: AttachmentInfo[];
+}
+
+export interface AttachmentInfo {
+  id: string;
+  originalName: string;
+  type: 'txt' | 'rtf' | 'pdf' | 'jpeg' | 'png' | 'unknown';
+  size: number;
+  path: string;
+  textContent?: string;
+  createdAt: number;
 }
 
 export interface ConversationState {
@@ -171,4 +199,10 @@ export const IPC_CHANNELS = {
   GET_CONFIG: 'get-config',
   SET_CONFIG: 'set-config',
   CANCEL_GENERATION: 'cancel-generation',
+  SET_TEMPERATURE: 'set-temperature',
+  GET_TEMPERATURE: 'get-temperature',
+  GET_MEMORY_STATS: 'get-memory-stats',
+  LIST_CONVERSATIONS: 'list-conversations',
+  LOAD_CONVERSATION: 'load-conversation',
+  CLEAR_MEMORY: 'clear-memory',
 } as const;

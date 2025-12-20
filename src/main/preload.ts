@@ -85,6 +85,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
    */
   uploadMedia: () =>
     ipcRenderer.invoke('upload-media'),
+
+  // Temperature control
+  setTemperature: (temperature: number) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SET_TEMPERATURE, temperature),
+  
+  getTemperature: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_TEMPERATURE),
+
+  // Memory bank
+  getMemoryStats: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_MEMORY_STATS),
+  
+  listConversations: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.LIST_CONVERSATIONS),
+  
+  loadConversation: (id: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.LOAD_CONVERSATION, id),
+  
+  clearMemory: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.CLEAR_MEMORY),
 });
 
 // Type declaration for the exposed API
@@ -113,6 +133,16 @@ declare global {
        * an object with a success boolean and optional fileName or error.
        */
       uploadMedia: () => Promise<{ success: boolean; fileName?: string; error?: string }>;
+
+      // Temperature control
+      setTemperature: (temperature: number) => Promise<{ success: boolean; temperature?: number; error?: string }>;
+      getTemperature: () => Promise<{ success: boolean; temperature: number }>;
+
+      // Memory bank
+      getMemoryStats: () => Promise<{ success: boolean; totalSize?: number; conversationCount?: number; maxSize?: number; error?: string }>;
+      listConversations: () => Promise<{ success: boolean; conversations?: Array<{ id: string; title: string; startedAt: number; updatedAt: number; messageCount: number }>; error?: string }>;
+      loadConversation: (id: string) => Promise<{ success: boolean; conversation?: unknown; error?: string }>;
+      clearMemory: () => Promise<{ success: boolean; error?: string }>;
     };
   }
 }

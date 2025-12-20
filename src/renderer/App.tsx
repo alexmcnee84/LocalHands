@@ -31,18 +31,26 @@ const App: React.FC = () => {
   const [streamingContent, setStreamingContent] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [temperature, setTemperature] = useState(0.7);
+  const [showTemperature, setShowTemperature] = useState(false);
 
   // Access the preload-injected API. Casting to any avoids type
   // checker errors when global declarations are missing during
   // type compilation.
   const electronAPI = (window as any).electronAPI;
 
-  // Load initial config
+  // Load initial config and temperature
   useEffect(() => {
     const loadConfig = async () => {
       try {
         const cfg = await electronAPI.getConfig();
         setConfig(cfg as AppConfig);
+        
+        // Load temperature
+        const tempResult = await electronAPI.getTemperature();
+        if (tempResult.success) {
+          setTemperature(tempResult.temperature);
+        }
       } catch (err) {
         console.error('Failed to load config:', err);
       }
@@ -205,6 +213,22 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const handleTemperatureChange = useCallback(async (newTemp: number) => {
+    setTemperature(newTemp);
+    try {
+      await electronAPI.setTemperature(newTemp);
+    } catch (err) {
+      console.error('Failed to set temperature:', err);
+    }
+  }, []);
+
+  const getTemperatureLabel = (temp: number): string => {
+    if (temp <= 0.3) return 'Precise';
+    if (temp <= 0.6) return 'Balanced';
+    if (temp <= 0.9) return 'Creative';
+    return 'Wild';
+  };
+
   return (
     <div className="flex h-screen bg-gray-900 text-white">
       {/* Top accent bar */}
@@ -225,6 +249,60 @@ const App: React.FC = () => {
         <header className="h-14 border-b-2 border-green-600 flex items-center px-4 relative">
           <h1 className="text-lg font-semibold">LocalHands</h1>
           <span className="ml-2 text-sm text-gray-400">AI Assistant</span>
+          
+          {/* Temperature Control */}
+          <div className="ml-4 relative">
+            <button
+              onClick={() => setShowTemperature(!showTemperature)}
+              className="flex items-center gap-2 px-3 py-1 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 text-sm"
+              title="Adjust LLM temperature"
+            >
+              <span className="text-cyan-400">{temperature.toFixed(1)}</span>
+              <span className="text-gray-400">{getTemperatureLabel(temperature)}</span>
+            </button>
+            
+            {showTemperature && (
+              <div className="absolute top-full left-0 mt-2 p-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 w-64">
+                <div className="text-xs text-gray-400 mb-2">Temperature: {temperature.toFixed(2)}</div>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value={temperature}
+                  onChange={(e) => handleTemperatureChange(parseFloat(e.target.value))}
+                  className="w-full accent-cyan-500"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Precise</span>
+                  <span>Balanced</span>
+                  <span>Creative</span>
+                  <span>Wild</span>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => handleTemperatureChange(0.2)}
+                    className={`flex-1 px-2 py-1 text-xs rounded ${temperature === 0.2 ? 'bg-cyan-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                  >
+                    0.2
+                  </button>
+                  <button
+                    onClick={() => handleTemperatureChange(0.7)}
+                    className={`flex-1 px-2 py-1 text-xs rounded ${temperature === 0.7 ? 'bg-cyan-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                  >
+                    0.7
+                  </button>
+                  <button
+                    onClick={() => handleTemperatureChange(1.0)}
+                    className={`flex-1 px-2 py-1 text-xs rounded ${temperature === 1.0 ? 'bg-cyan-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                  >
+                    1.0
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {config?.workspaceDir && (
             <span className="ml-auto text-sm text-gray-500 truncate max-w-md">
               Workspace: {config.workspaceDir}

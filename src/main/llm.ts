@@ -53,6 +53,7 @@ export class LLMManager {
   private currentModelPath: string | null = null;
   private tools: ToolDefinition[] = [];
   private systemPrompt: string = '';
+  private temperature: number = 0.7;
 
   // Lazily load the node-llama-cpp module using dynamic import
   // Uses Function constructor to prevent TypeScript from transforming import() to require()
@@ -118,6 +119,14 @@ export class LLMManager {
 
   setSystemPrompt(prompt: string): void {
     this.systemPrompt = prompt;
+  }
+
+  setTemperature(temp: number): void {
+    this.temperature = Math.max(0, Math.min(2, temp));
+  }
+
+  getTemperature(): number {
+    return this.temperature;
   }
 
   private buildToolsPrompt(): string {
@@ -289,7 +298,7 @@ IMPORTANT: Always use the exact tool names and parameter names as specified abov
           }
         },
         maxTokens: 2048,
-        temperature: 0.7,
+        temperature: this.temperature,
         topP: 0.9,
       });
 
@@ -335,7 +344,7 @@ IMPORTANT: Always use the exact tool names and parameter names as specified abov
           }
         },
         maxTokens: 2048,
-        temperature: 0.7,
+        temperature: this.temperature,
       });
     } catch (err) {
       console.error('Error during completion:', err);
