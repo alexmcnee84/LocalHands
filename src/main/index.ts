@@ -5,7 +5,7 @@ import { LLMManager } from './llm';
 import { Agent, AgentEventHandlers } from './agent';
 import { getToolDefinitionsForLLM } from './tools';
 import { IPC_CHANNELS, AgentConfig, Message, ToolResult } from '../shared/types';
-import { memoryManager } from './memory';
+import { getMemoryManager } from './memory';
 import { parseFile, detectFileType } from './file-parser';
 
 let mainWindow: BrowserWindow | null = null;
@@ -110,6 +110,7 @@ function setupIpcHandlers(): void {
 
     try {
       // Start a new conversation if needed
+      const memoryManager = getMemoryManager();
       if (!memoryManager.listConversations().length) {
         memoryManager.startNewConversation(
           llmManager?.getModelPath() || undefined,
@@ -303,7 +304,7 @@ function setupIpcHandlers(): void {
   // Memory bank handlers
   ipcMain.handle(IPC_CHANNELS.GET_MEMORY_STATS, async () => {
     try {
-      const stats = await memoryManager.getMemoryStats();
+      const stats = await getMemoryManager().getMemoryStats();
       return { success: true, ...stats };
     } catch (err) {
       return { success: false, error: (err as Error).message };
@@ -312,7 +313,7 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.LIST_CONVERSATIONS, async () => {
     try {
-      const conversations = memoryManager.listConversations();
+      const conversations = getMemoryManager().listConversations();
       return { success: true, conversations };
     } catch (err) {
       return { success: false, error: (err as Error).message };
@@ -321,7 +322,7 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.LOAD_CONVERSATION, async (_, id: string) => {
     try {
-      const conversation = memoryManager.loadConversation(id);
+      const conversation = getMemoryManager().loadConversation(id);
       if (conversation) {
         return { success: true, conversation };
       }
@@ -333,7 +334,7 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.CLEAR_MEMORY, async () => {
     try {
-      memoryManager.clearCurrentConversation();
+      getMemoryManager().clearCurrentConversation();
       return { success: true };
     } catch (err) {
       return { success: false, error: (err as Error).message };

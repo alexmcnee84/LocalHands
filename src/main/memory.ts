@@ -334,4 +334,12 @@ export class MemoryManager {
   }
 }
 
-export const memoryManager = new MemoryManager();
+// Lazy singleton - only instantiate after app is ready
+let _memoryManager: MemoryManager | null = null;
+
+export function getMemoryManager(): MemoryManager {
+  if (!_memoryManager) {
+    _memoryManager = new MemoryManager();
+  }
+  return _memoryManager;
+}
